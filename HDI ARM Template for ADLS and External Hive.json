@@ -1,0 +1,244 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+    "contentVersion": "0.9.0.0",
+    "parameters": {
+        "clusterName": {
+            "type": "string",
+            "defaultValue": "adampaternostro01",
+            "metadata": {
+                "description": "The name of the HDInsight cluster to create."
+            }
+        },
+        "clusterWorkerNodeCount": {
+            "type": "int",
+            "defaultValue": 1,
+            "metadata": {
+                "description": "The number of nodes in the HDInsight cluster."
+            }
+        },
+        "clusterStorageAccountName": {
+            "type": "string",
+            "defaultValue": "adampaternostro01",
+            "metadata": {
+                "description": "The name of the Azure storage account for HDI."
+            }
+        },
+        "clusterLoginUserName": {
+            "type": "string",
+            "defaultValue": "admin",
+            "metadata": {
+                "description": "These credentials can be used to submit jobs to the cluster and to log into cluster dashboards."
+            }
+        },
+        "clusterLoginPassword": {
+            "type": "securestring",
+            "defaultValue": "<<REMOVED>>",
+            "metadata": {
+                "description": "The password must be at least 10 characters in length and must contain at least one digit, one non-alphanumeric character, and one upper or lower case letter."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "eastus2",
+            "metadata": {
+                "description": "The location where all azure resources will be deployed."
+            }
+        },
+        "clusterVersion": {
+            "type": "string",
+            "defaultValue": "3.6",
+            "metadata": {
+                "description": "HDInsight cluster version."
+            }
+        },
+        "clusterKind": {
+            "type": "string",
+            "defaultValue": "SPARK",
+            "metadata": {
+                "description": "The type of the HDInsight cluster to create."
+            }
+        },
+        "sshUserName": {
+            "type": "string",
+            "defaultValue": "sshuser",
+            "metadata": {
+                "description": "These credentials can be used to remotely access the cluster."
+            }
+        },
+        "sshPassword": {
+            "type": "securestring",
+            "defaultValue": "<<REMOVED>>",
+            "metadata": {
+                "description": "The password must be at least 10 characters in length and must contain at least one digit, one non-alphanumeric character, and one upper or lower case letter."
+            }
+        },
+        "hiveUserName": {
+            "type": "string",
+            "defaultValue": "sqladmin",
+            "metadata": {
+                "description": "These credentials can be used to remotely access hive."
+            }
+        },
+        "hiveDatabaseServerURL": {
+            "defaultValue": "jdbc:sqlserver://hdihiveserver.database.windows.net;database=hivedb;encrypt=true;trustServerCertificate=true;create=false;loginTimeout=300",
+            "type": "string",
+            "metadata": {
+                "description": "SQL DB Server for Hive"
+            }
+        },
+        "hiveDatabaseServer": {
+            "defaultValue": "hdihiveserver.database.windows.net",
+            "type": "string",
+            "metadata": {
+                "description": "SQL DNS name"
+            }
+        },
+        "hivePassword": {
+            "defaultValue": "<<REMOVED>>",
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for SQL DB for Hive"
+            }
+        },
+        "hiveDatabase": {
+            "defaultValue": "hivedb",
+            "type": "string",
+            "metadata": {
+                "description": "Name of database"
+            }
+        },
+        "identityCertificate": {
+            "defaultValue": "<<REMOVED>>",
+            "type": "securestring",
+            "metadata": {
+                "description": "Base 64 encoded certificate for ADLS"
+            }
+        },
+        "identityCertificatePassword": {
+            "defaultValue": "<<REMOVED>>",
+            "type": "securestring",
+            "metadata": {
+                "description": "Certificate Password"
+            }
+        },
+        "identityApplicationId": {
+            "defaultValue": "<<REMOVED>>",
+            "type": "string",
+            "metadata": {
+                "description": "Service Principle (Cert) Id"
+            }
+        },
+        "aadTenantId":
+        {
+            "defaultValue": "<<REMOVED>>",
+            "type": "string",
+            "metadata": {
+                "description": "Azure AD Tenant"
+            }           
+        }
+    },
+    "resources": [
+        {
+            "name": "[parameters('clusterStorageAccountName')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "location": "[parameters('location')]",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [],
+            "tags": {},
+            "properties": {
+                "accountType": "Standard_LRS"
+            }
+        },
+        {
+            "apiVersion": "2015-03-01-preview",
+            "name": "[parameters('clusterName')]",
+            "type": "Microsoft.HDInsight/clusters",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/',parameters('clusterName'))]"
+            ],
+            "properties": {
+                "clusterVersion": "[parameters('clusterVersion')]",
+                "osType": "Linux",
+                "tier": "standard",
+                "clusterDefinition": {
+                    "kind": "[parameters('clusterKind')]",
+                    "configurations": {
+                        "gateway": {
+                            "restAuthCredential.isEnabled": true,
+                            "restAuthCredential.username": "[parameters('clusterLoginUserName')]",
+                            "restAuthCredential.password": "[parameters('clusterLoginPassword')]"
+                        },
+                        "hive-site": {
+                            "javax.jdo.option.ConnectionDriverName": "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+                            "javax.jdo.option.ConnectionURL": "[parameters('hiveDatabaseServerURL')]",
+                            "javax.jdo.option.ConnectionUserName": "[parameters('hiveUserName')]",
+                            "javax.jdo.option.ConnectionPassword": "[parameters('hivePassword')]"
+                        },
+                        "hive-env": {
+                            "hive_database": "Existing MSSQL Server database with SQL authentication",
+                            "hive_database_name": "[parameters('hiveDatabase')]",
+                            "hive_database_type": "mssql",
+                            "hive_existing_mssql_server_database": "[parameters('hiveDatabase')]",
+                            "hive_existing_mssql_server_host": "[parameters('hiveDatabaseServer')]",
+                            "hive_hostname": "[parameters('hiveDatabaseServer')]"
+                        },
+                        "clusterIdentity": {
+                            "clusterIdentity.applicationId": "[parameters('identityApplicationId')]",
+                            "clusterIdentity.certificate": "[parameters('identityCertificate')]",
+                            "clusterIdentity.aadTenantId": "[concat('https://login.windows.net/',parameters('aadTenantId'))]",
+                            "clusterIdentity.resourceUri": "https://management.core.windows.net/",
+                            "clusterIdentity.certificatePassword": "[parameters('identityCertificatePassword')]"
+                        }
+                    }
+                },
+                "storageProfile": {
+                    "storageaccounts": [
+                        {
+                            "name": "[concat(parameters('clusterStorageAccountName'),'.blob.core.windows.net')]",
+                            "isDefault": true,
+                            "container": "[parameters('clusterName')]",
+                            "key": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('clusterStorageAccountName')), '2015-05-01-preview').key1]"
+                        }
+                    ]
+                },
+                "computeProfile": {
+                    "roles": [
+                        {
+                            "name": "headnode",
+                            "minInstanceCount": 1,
+                            "targetInstanceCount": 2,
+                            "hardwareProfile": {
+                                "vmSize": "Standard_D3"
+                            },
+                            "osProfile": {
+                                "linuxOperatingSystemProfile": {
+                                    "username": "[parameters('sshUserName')]",
+                                    "password": "[parameters('sshPassword')]"
+                                }
+                            },
+                            "virtualNetworkProfile": null,
+                            "scriptActions": []
+                        },
+                        {
+                            "name": "workernode",
+                            "minInstanceCount": 1,
+                            "targetInstanceCount": "[parameters('clusterWorkerNodeCount')]",
+                            "hardwareProfile": {
+                                "vmSize": "Standard_D3"
+                            },
+                            "osProfile": {
+                                "linuxOperatingSystemProfile": {
+                                    "username": "[parameters('sshUserName')]",
+                                    "password": "[parameters('sshPassword')]"
+                                }
+                            },
+                            "virtualNetworkProfile": null,
+                            "scriptActions": []
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

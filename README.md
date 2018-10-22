@@ -15,4 +15,5 @@ I typically kick off the cluster creation and do something else for 20 minutes w
 3. Take the values from step 1 and update the ARM template (parameters at the top) in this repository. You might want to make the machine sizes a parameter, but that is up to you.
 4. In the Azure Portal save the template. There is a feature to save templates, then you just need to hit the deploy button when you want a cluster.  You will need to enter a resource group name (I usually name this the same name as my cluster.  In fact I name my resource group, cluster, storage account and blob container in the storage account all the same name.  That's just my preference).
 
+
 ![alt tag](https://raw.githubusercontent.com/AdamPaternostro/Azure-HDInsight-ARM-Template/master/Azure-Template.png)
